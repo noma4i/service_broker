@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+# Applies each mutation of test/mutations.json, runs its suite and restores the file.
+# Usage: bin/mutate [row number]
+
+require 'json'
+require 'open3'
+
+ROOT = File.expand_path('..', __dir__)
+MUTATIONS = JSON.parse(File.read(File.join(ROOT, 'test/mutations.json')))
+
+def run_suite(suite)
+  output, = Open3.capture2e("bundle exec rake #{suite}", chdir: ROOT)
+  line = output.lines.reverse.find { |text| text.include?('runs,') }
+
+  line ? line.strip : output.lines.last.to_s.strip
+end
+
+def apply(mutation)
+  path = File.join(ROOT, mutation['file'])
+  body = File.read(path)
+  raise "mutation target missing in #{mutation['file']}" unless body.include?(mutation['from'])
+
+  File.write(path, body.sub(mutation['from'], mutation['to']))
+  yield
+ensure
+  File.write(path, body)
+end
+
+selected = ARGV.empty? ? MUTATIONS : [MUTATIONS[ARGV.first.to_i - 1]]
+
+selected.each do |mutation|
+  result = apply(mutation) { run_suite(mutation['suite']) }
+  puts "#{mutation['spec']} | #{mutation['file']} | #{mutation['suite']} | #{result}"
+end

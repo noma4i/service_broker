@@ -1,0 +1,65 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'test/tmp/**/*'
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# The gem declares its own namespaces with nested modules, application
+# operations use the compact form by SB-02-02.
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
+  Enabled: false
+
+Naming/PredicatePrefix:
+  Enabled: false
+
+Naming/VariableNumber:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 25
+
+Metrics/CyclomaticComplexity:
+  Max: 12
+
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/ParameterLists:
+  Max: 6
+
+Metrics/BlockLength:
+  Exclude:
+    - 'test/**/*'
+
+# A table of input and error code pairs is the required form by SB-10-05,
+# so the size rules do not apply to the test files.
+Metrics/AbcSize:
+  Max: 30
+  Exclude:
+    - 'test/**/*'
+
+Metrics/ClassLength:
+  Max: 200
+  Exclude:
+    - 'test/**/*'
+
+Layout/LineLength:
+  Max: 110
+
+Lint/MissingSuper:
+  Enabled: false
+
+Lint/NestedMethodDefinition:
+  Exclude:
+    - 'test/**/*'

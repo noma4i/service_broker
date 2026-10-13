@@ -1,0 +1,86 @@
+[
+  {
+    "spec": "01-scope.md",
+    "file": "lib/service_broker.rb",
+    "from": "require_relative 'service_broker/inline_async'",
+    "to": "# inline async left out",
+    "suite": "core"
+  },
+  {
+    "spec": "02-operation.md",
+    "file": "lib/service_broker/operation.rb",
+    "from": "return unless name == :initialize && self != Operation",
+    "to": "return unless false",
+    "suite": "core"
+  },
+  {
+    "spec": "03-inputs.md",
+    "file": "lib/service_broker/input_set.rb",
+    "from": "errors[name] = ErrorAtom.new(name, :unknown_input)",
+    "to": "checked[name.to_s] = arguments[key]",
+    "suite": "core"
+  },
+  {
+    "spec": "04-filters.md",
+    "file": "lib/service_broker/filters/numeric.rb",
+    "from": "PATTERN = /\\A[+-]?\\d+\\z/",
+    "to": "PATTERN = /^-?\\d/",
+    "suite": "core"
+  },
+  {
+    "spec": "05-execution.md",
+    "file": "lib/service_broker/operation.rb",
+    "from": "raise e unless options[:soft]",
+    "to": "return nil unless options[:soft]",
+    "suite": "core"
+  },
+  {
+    "spec": "06-errors.md",
+    "file": "lib/service_broker/errors.rb",
+    "from": "raise ArgumentError, 'error code must be a Symbol' unless code.is_a?(::Symbol)",
+    "to": "code = code.to_sym unless code.is_a?(::Symbol)",
+    "suite": "core"
+  },
+  {
+    "spec": "07-async.md",
+    "file": "lib/service_broker/queueing.rb",
+    "from": "raise AsyncForbidden, \"#{name} is not asyncable\" unless asyncable?",
+    "to": "return nil unless asyncable?",
+    "suite": "core"
+  },
+  {
+    "spec": "08-rails.md",
+    "file": "lib/service_broker/rails/filters/finder.rb",
+    "from": "return [value, :new_records] if !options[:new_records] && record.new_record?",
+    "to": "return [value, :new_records] if false",
+    "suite": "rails"
+  },
+  {
+    "spec": "09-extensions.md",
+    "file": "lib/service_broker/filters.rb",
+    "from": "raise DeclarationError, \"input type #{key} is already registered\" if registry.key?(key)",
+    "to": "return nil if registry.key?(key)",
+    "suite": "core"
+  },
+  {
+    "spec": "10-testing.md",
+    "file": "lib/service_broker/configuration.rb",
+    "from": "      job_parent_name max_retries",
+    "to": "      job_parent_name max_retries retry_delay",
+    "suite": "meta"
+  },
+  {
+    "spec": "12-events.md",
+    "file": "lib/service_broker/events.rb",
+    "from": "        listener.call(name, payload)",
+    "to": "        nil if listener",
+    "suite": "core"
+  },
+  {
+    "spec": "13-testing-helpers.md",
+    "file": "lib/service_broker/testing.rb",
+    "from": "      restore_runner(previous)\n      @service_broker_recorder = nil",
+    "to": "      @service_broker_recorder = nil",
+    "suite": "core"
+  }
+]
