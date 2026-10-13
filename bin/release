@@ -66,7 +66,11 @@ run bundle exec rake test
 run bundle exec rubocop --no-color
 
 say 'commit and tag'
-run git commit -am "Release version $version"
+if [ "$dry_run" = '--dry-run' ] || ! git diff --quiet; then
+  run git commit -am "Release version $version"
+else
+  say "version file already carries $version, nothing to commit"
+fi
 run git tag -a "v$version" -m "Version $version"
 run git push origin master --follow-tags
 
