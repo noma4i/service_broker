@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Makes one release of this gem: version, changelog, suites, tag, GitHub release.
+# Usage: bin/release <version>            e.g. bin/release 1.1.0
+#        bin/release <version> --dry-run  prints the steps and changes nothing
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$root"
+
+version="${1:-}"
+dry_run="${2:-}"
+
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "usage: bin/release <major.minor.patch> [--dry-run]" >&2
+  exit 1
+fi
+
+say() { printf '==> %s\n' "$1"; }
+run() {
+  if [ "$dry_run" = '--dry-run' ]; then
+    printf '    would run: %s\n' "$*"
+  else
+    "$@"
+  fi
+}
+
+say "release $version"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "the working tree carries changes: commit or stash them first" >&2
+  exit 2
+fi
+
+branch="$(git branch --show-current)"
+if [ "$branch" != 'master' ]; then
+  echo "releases are made from master, this is $branch" >&2
+  exit 2
+fi
+
+if git rev-parse "v$version" >/dev/null 2>&1; then
+  echo "tag v$version exists already" >&2
+  exit 2
+fi
+
+# The changelog section of this version is the release notes.
+notes="$(awk -v want="## $version" '
+  $0 == want { found = 1; next }
+  found && /^## / { exit }
+  found { print }
+' CHANGELOG.md)"
+
+if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+  echo "CHANGELOG.md carries no section '## $version': write it first" >&2
+  exit 2
+fi
+
+say 'version file'
+run ruby -e '
+  path = "lib/service_broker/version.rb"
+  body = File.read(path)
+  File.write(path, body.sub(/VERSION = .[0-9.]+./, "VERSION = \x27" + ARGV[0] + "\x27"))
+' "$version"
+
+say 'suites and style'
+run bundle exec rake test
+run bundle exec rubocop --no-color
+
+say 'commit and tag'
+run git commit -am "Release version $version"
+run git tag -a "v$version" -m "Version $version"
+run git push origin master --follow-tags
+
+say 'github release'
+notes_file="$(mktemp)"
+printf '%s\n' "$notes" > "$notes_file"
+run gh release create "v$version" --title "v$version" --notes-file "$notes_file" --verify-tag
+rm -f "$notes_file"
+
+say 'done: the release workflow builds the package and attaches it to the release'
+say 'rubygems stays manual and is not part of this script'
