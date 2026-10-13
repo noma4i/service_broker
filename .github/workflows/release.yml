@@ -1,0 +1,41 @@
+name: release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Check that the release name matches the gem version
+        run: |
+          version=$(ruby -e "require './lib/service_broker/version'; print ServiceBroker::VERSION")
+          test "v${version}" = "${{ github.event.release.tag_name }}"
+
+      - name: Run the suites
+        run: |
+          bundle exec rake core
+          bundle exec rake rails
+          bundle exec rubocop --no-color
+
+      - name: Build the gem
+        run: gem build service_broker.gemspec
+
+      # The package is attached to this release only. Publishing to RubyGems stays manual.
+      - name: Attach the package to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" service_broker-*.gem --clobber

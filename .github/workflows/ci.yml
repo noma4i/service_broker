@@ -1,0 +1,79 @@
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ['3.4', '4.0']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      # The meta suite reads the requirement files, which live outside this repository.
+      - name: Core suite
+        run: bundle exec rake core
+
+      - name: Rails suite
+        run: bundle exec rake rails
+
+  style:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: RuboCop
+        run: bundle exec rubocop --no-color
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Build the gem
+        run: |
+          gem build service_broker.gemspec
+          ls -l service_broker-*.gem
+
+      - name: Check what the package carries
+        run: |
+          gem unpack service_broker-*.gem --target unpacked
+          test -f unpacked/service_broker-*/lib/service_broker.rb
+          test -f unpacked/service_broker-*/lib/service_broker/testing.rb
+          test -f unpacked/service_broker-*/lib/generators/service_broker/install/install_generator.rb
+          test -f unpacked/service_broker-*/README.md
+          test -f unpacked/service_broker-*/CHANGELOG.md
+          test -f unpacked/service_broker-*/LICENSE
+
+      # Loads the gem out of the package, so the check needs no network and no global install.
+      - name: Load the gem out of the package
+        run: |
+          bundle exec ruby -Iunpacked/service_broker-*/lib \
+            -e "require 'service_broker'; puts ServiceBroker::VERSION; puts ServiceBroker::Filters.names.size"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: service_broker-gem
+          path: service_broker-*.gem
+          if-no-files-found: error
