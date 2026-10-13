@@ -126,6 +126,27 @@ class FiltersCommonTest < BrokerTest
     assert_equal [1, 2, 3], operation.call(value: [3, 1, 2])
   end
 
+  def test_sb_04_48_coerce_runs_before_the_type_check
+    operation = declare do
+      required { array :ids, of: :integer, coerce: ->(value) { Array(value) } }
+
+      def execute
+        ids
+      end
+    end
+
+    assert_equal [7], operation.call(ids: 7)
+    assert_equal [1, 2], operation.call(ids: [1, 2])
+  end
+
+  def test_sb_04_48_failing_coerce_gives_its_own_code
+    operation = declare do
+      required { string :value, coerce: ->(_value) { raise 'boom' } }
+    end
+
+    assert_equal :coerce, operation.validate(value: 'a').errors.symbolic['value']
+  end
+
   def test_sb_04_47_failing_transform_gives_its_own_code
     operation = declare do
       required { string :value, transform: ->(_value) { raise 'boom' } }

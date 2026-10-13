@@ -2,7 +2,8 @@ module ServiceBroker
   module Filters
     # Parent of every input type: holds the options and checks one value.
     class Base
-      SHARED_OPTIONS = %i[default discard_nils discard_empty discard_invalid error_key transform].freeze
+      SHARED_OPTIONS = %i[default discard_nils discard_empty discard_invalid error_key transform
+                          coerce].freeze
 
       attr_reader :options, :name
 
@@ -53,6 +54,16 @@ module ServiceBroker
 
       def error_key
         options[:error_key] || name
+      end
+
+      # Applies the coerce option to the value as it came in, before the type check.
+      def coerce_value(value)
+        rule = options[:coerce]
+        return [value, nil] if rule.nil?
+
+        [rule.respond_to?(:call) ? rule.call(value) : value.public_send(rule), nil]
+      rescue StandardError
+        [value, :coerce]
       end
 
       # Applies the transform option to one checked value.

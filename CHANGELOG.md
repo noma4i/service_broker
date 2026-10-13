@@ -18,6 +18,13 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.2.0
+
+### Inputs
+
+- New option `coerce:` converts the value of an input before its type check, so a scalar can reach
+  an `array` input. A failing `coerce` gives the error code `:coerce`.
+
 ## 1.1.0
 
 ### Operations

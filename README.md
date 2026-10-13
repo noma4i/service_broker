@@ -95,8 +95,8 @@ end
 | `gid` | a GlobalID string | `:gid`, `:not_found`, `:in` |
 | `record` | any record: the object, its GlobalID or `{type:, id:}` | `:record`, `:not_found`, `:in` |
 
-Every type takes `nils: true` to accept an explicit `nil`, `transform:` to convert the checked
-value, and every scalar type takes `empty_is_nil: true`. Optional inputs also take `default:`,
+Every type takes `nils: true` to accept an explicit `nil`, `coerce:` to convert the value before the
+type check, `transform:` to convert it after, and every scalar type takes `empty_is_nil: true`. Optional inputs also take `default:`,
 `discard_nils`, `discard_empty`, `discard_invalid` and `error_key`.
 
 ```ruby
@@ -105,6 +105,7 @@ array :users, of: :finder, model: ::User      # element options ride along
 hash :counters, of: :integer                  # every value of any key
 string :email, transform: :downcase           # a method of the value
 array :ids, of: :integer, transform: ->(list) { list.uniq }
+array :ids, of: :integer, coerce: ->(value) { Array(value) }   # one id arrives as a scalar
 requires_one_of :account, :card               # exactly one of the two
 ```
 

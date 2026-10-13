@@ -163,7 +163,8 @@ module ServiceBroker
         return []
       end
 
-      value, code = filter.filter(arguments[key])
+      value, code = filter.coerce_value(arguments[key])
+      value, code = filter.filter(value) if code.nil?
       value, code = filter.transform(value) if code.nil?
 
       if code.nil?
@@ -199,7 +200,8 @@ module ServiceBroker
         key = arguments.key?(name) ? name : name.to_s
 
         if star
-          value, code = star.filter(arguments[key])
+          value, code = star.coerce_value(arguments[key])
+          value, code = star.filter(value) if code.nil?
           value, code = star.transform(value) if code.nil?
           code.nil? ? checked[name.to_s] = value : errors[name] = atom(name, code)
         elsif !allow_unknown?

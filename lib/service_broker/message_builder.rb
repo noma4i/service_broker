@@ -34,6 +34,7 @@ module ServiceBroker
       before: "isn't before the given moment",
       on_or_after: 'is before the given moment',
       on_or_before: 'is after the given moment',
+      coerce: 'could not be converted',
       exception: 'could not be processed'
     }.freeze
 
