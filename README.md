@@ -41,7 +41,7 @@ bundle install
 bin/rails generate service_broker:install   # writes config/initializers/service_broker.rb
 ```
 
-Ruby 3.4 or newer, Rails 8.1 or newer. The core needs `activesupport` only. `activerecord` and
+Ruby 3.2 or newer, Rails 7.0 or newer. The core needs `activesupport` only. `activerecord` and
 `activejob` back the `finder`, `model`, `gid` and `record` inputs, the `safe` option and the
 ActiveJob runner.
 
@@ -161,6 +161,49 @@ job_id  = Billing::ChargeCard.call(..., async: true) # the id the runner returne
 
 `ServiceBroker::SyncOperation` is the base for work that must never be queued: a call with
 `async: true` raises `ServiceBroker::AsyncForbidden`.
+
+## Chaining operations
+
+An operation calls another one with `step`, and the chain stops on the first failure:
+
+```ruby
+class Purchases::Grant < ServiceBroker::Operation
+  required do
+    model :user, class: ::User
+    symbol :kind
+    hash :payload, of: :string
+  end
+
+  before Purchases::CheckQuota, user: :user
+  after  User::PremiumGrantReconcile, user: :user
+  after  Media::Analyze, async: true, media: ->(result) { result.media }, if: ->(result) { result.media }
+
+  def execute
+    receipt = step(Purchases::Verify, user:, kind:, payload:)
+
+    step(User::PremiumGrantCreate, user:, receipt:)
+  end
+end
+```
+
+| Name | Where it runs | A failed step |
+| --- | --- | --- |
+| `step(Klass, **args)` | inside `execute` and `validate` | its errors become yours, the operation stops |
+| `before Klass, **mapping` | after the input check, before `execute` | the same, and `execute` never runs |
+| `after Klass, **mapping` | after a successful `execute` | reported through `error_reporter`, your result stands |
+
+- `step` calls the other operation with `soft: true` and returns its result. No option of the outer
+  call reaches it.
+- Errors of a step merge at the top level, so `outcome.errors.symbolic` reads the same as the step
+  returned it. `step(Klass, as: :payment, ...)` puts them under `payment` instead.
+- An `after` step runs once the transaction of the call has committed. `in_transaction: true` moves
+  it inside, where a failure rolls the whole call back.
+- A value of a step is a symbol naming one of your inputs, an object answering `call`, or a literal.
+  A callable receives the result of `execute` in `after` and the operation itself in `before`.
+- `async: true` queues the step, `if:` takes a callable over the result, and both names, like
+  `in_transaction`, stay out of the arguments of the step.
+- Nested steps are limited by `config.max_step_depth`, so two operations calling each other raise
+  `ServiceBroker::StepDepthError` instead of running forever.
 
 ## Errors
 
@@ -323,6 +366,7 @@ end
 | `retry_on` | `{}` | Retry rules per error class name |
 | `job_parent_name` | `'ActiveJob::Base'` | Parent of the generated job classes |
 | `max_retries` | `25` | Upper limit of retries of one queued operation |
+| `max_step_depth` | `10` | Upper limit of nested steps of one call |
 
 ## License
 

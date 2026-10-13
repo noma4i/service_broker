@@ -18,6 +18,30 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.1.0
+
+### Operations
+
+- `step(operation_class, **arguments)` calls another operation from `execute` or `validate`,
+  returns its result and, on a failure, merges its errors and stops the operation. `as:` puts the
+  errors of the step under one key.
+- `before operation_class, **mapping` runs a step after the input check and before `execute`.
+- `after operation_class, **mapping` runs a step once a successful call has committed. A failed
+  step is reported and the result of the operation stands. `in_transaction: true` moves the step
+  inside the transaction, `async: true` queues it, and `if:` takes a callable over the result.
+- A value of a step is a symbol naming an input, an object answering `call`, or a literal.
+
+### Execution
+
+- New setting `max_step_depth` (10 by default) limits nested steps and raises
+  `ServiceBroker::StepDepthError` beyond it.
+- `step` joins the reserved input names.
+
+### Around the gem
+
+- Ruby 3.2 and Rails 7.0 are the new lower bounds, down from Ruby 3.4 and Rails 8.1. The suites run
+  on both bounds in CI, the lower one through `gemfiles/rails_7_0.gemfile`.
+
 ## 1.0.0
 
 First release.

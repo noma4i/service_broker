@@ -34,7 +34,7 @@ class RailsInputsTest < RailsBrokerTest
   def test_sb_08_03_settings_list
     assert_equal %i[
       async_runner error_dedup error_reporter instrumenter job_parent_name logger max_retries
-      message_builder retry_on
+      max_step_depth message_builder retry_on
     ], ServiceBroker.config.to_h.keys.sort
   end
 

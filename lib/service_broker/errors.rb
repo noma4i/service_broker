@@ -14,6 +14,10 @@ module ServiceBroker
   class SerializationError < Error
   end
 
+  # Raised when nested steps go deeper than the limit of the settings.
+  class StepDepthError < Error
+  end
+
   # Raised inside a safe call to roll the transaction back after a failed answer.
   class RollbackSignal < Error
   end

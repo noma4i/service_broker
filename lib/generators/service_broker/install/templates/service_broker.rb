@@ -25,4 +25,7 @@ ServiceBroker.configure do |config|
 
   # Upper limit of retries of one queued operation.
   config.max_retries = 25
+
+  # Upper limit of nested steps of one call.
+  config.max_step_depth = 10
 end

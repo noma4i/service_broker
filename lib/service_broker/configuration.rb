@@ -3,7 +3,7 @@ module ServiceBroker
   class Configuration
     SETTINGS = %i[
       async_runner error_reporter error_dedup message_builder logger instrumenter retry_on
-      job_parent_name max_retries
+      job_parent_name max_retries max_step_depth
     ].freeze
 
     attr_reader(*SETTINGS, :pass_through_errors)
@@ -18,7 +18,16 @@ module ServiceBroker
       @retry_on = {}
       @job_parent_name = ServiceBroker.default_job_parent_name
       @max_retries = 25
+      @max_step_depth = 10
       @pass_through_errors = ServiceBroker.default_pass_through_errors.dup
+    end
+
+    def max_step_depth=(value)
+      unless value.is_a?(::Integer) && value.positive?
+        raise ConfigurationError, 'max_step_depth must be a positive number'
+      end
+
+      @max_step_depth = value
     end
 
     def pass_through_errors=(classes)

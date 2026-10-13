@@ -7,6 +7,7 @@ module ServiceBroker
     RESERVED = %i[
       run run! run_sync call execute initialize validate inputs raw_inputs errors has_errors?
       outcome add_error merge_errors throw_error throw_structured_error memo report_context safe
+      step
       soft async queue delay priority log class clone dup freeze frozen? hash inspect instance_variables
       method methods nil? object_id public_send respond_to? send tap then to_s
     ].freeze

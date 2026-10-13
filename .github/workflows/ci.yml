@@ -12,7 +12,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ['3.4', '4.0']
+        include:
+          - ruby: '3.2'
+            gemfile: gemfiles/rails_7_0.gemfile
+          - ruby: '3.4'
+            gemfile: Gemfile
+          - ruby: '4.0'
+            gemfile: Gemfile
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
     steps:
       - uses: actions/checkout@v4
 

@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
                      'returns a result or a set of errors. Deferred calls go through a replaceable runner.'
   spec.homepage = 'https://github.com/noma4i/service_broker'
   spec.license = 'MIT'
-  spec.required_ruby_version = '>= 3.4'
+  spec.required_ruby_version = '>= 3.2'
 
   spec.metadata['source_code_uri'] = spec.homepage
   spec.metadata['changelog_uri'] = "#{spec.homepage}/blob/master/CHANGELOG.md"
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir['lib/**/*', 'README.md', 'CHANGELOG.md', 'LICENSE']
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'activejob', '>= 8.1'
-  spec.add_dependency 'activerecord', '>= 8.1'
-  spec.add_dependency 'activesupport', '>= 8.1'
+  spec.add_dependency 'activejob', '>= 7.0'
+  spec.add_dependency 'activerecord', '>= 7.0'
+  spec.add_dependency 'activesupport', '>= 7.0'
 end

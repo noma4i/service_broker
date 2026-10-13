@@ -82,5 +82,12 @@
     "from": "      restore_runner(previous)\n      @service_broker_recorder = nil",
     "to": "      @service_broker_recorder = nil",
     "suite": "core"
+  },
+  {
+    "spec": "14-composition.md",
+    "file": "lib/service_broker/composition.rb",
+    "from": "        outcome = ServiceBroker.with_step_depth { operation_class.call(**arguments, soft: true) }\n        return outcome.result if outcome.success?",
+    "to": "        outcome = ServiceBroker.with_step_depth { operation_class.call(**arguments, soft: true) }\n        return outcome.result",
+    "suite": "core"
   }
 ]

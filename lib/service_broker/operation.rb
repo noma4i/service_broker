@@ -11,6 +11,8 @@ module ServiceBroker
       include Queueing
       include Reporting
       include OptionDeclarations
+      include Composition::Declarations
+      include Running
 
       def inherited(subclass)
         super
@@ -120,53 +122,9 @@ module ServiceBroker
         EXECUTION_OPTIONS.each { |name| options[name] = args[name] if args.key?(name) }
         options
       end
-
-      def perform(inputs, options, &)
-        state = {}
-        return watched(inputs, options) { run_checked(inputs, options, state, &) } unless options[:safe]
-
-        answer = nil
-        watched(inputs, options) do
-          ServiceBroker.transaction do
-            answer = run_checked(inputs, options, state, &)
-            raise RollbackSignal if state[:failed]
-          end
-
-          answer
-        end
-      end
-
-      def run_checked(inputs, options, state = {}, &)
-        logger = Log.new(self, inputs, options[:log])
-        check_abstract_methods!
-        logger.start
-
-        operation = new(inputs)
-        outcome = options[:check_only] ? operation.outcome : operation.run(&)
-        logger.finish(outcome)
-        state[:failed] = !outcome.success?
-
-        answer(outcome, options)
-      rescue StandardError => e
-        raise if ServiceBroker.config.pass_through_errors.any? { |klass| e.is_a?(klass) }
-
-        logger.finish(e)
-        report(e, inputs, operation)
-        state[:failed] = true
-        raise e unless options[:soft]
-
-        failed_outcome(e, inputs)
-      end
-
-      def check_abstract_methods!
-        missing = abstract_methods.reject do |method|
-          method_defined?(method) || private_method_defined?(method)
-        end
-        return if missing.empty?
-
-        raise DeclarationError, "#{name} does not define #{missing.join(', ')}"
-      end
     end
+
+    include Composition::Steps
 
     def initialize(arguments = {})
       @raw_inputs = ServiceBroker.indifferent(arguments)
@@ -181,7 +139,7 @@ module ServiceBroker
     def run(&)
       return outcome if has_errors?
 
-      caught = catch(:service_broker_error) { return outcome(execute(&)) }
+      caught = catch(:service_broker_error) { return outcome(run_steps(&)) }
       @errors = caught
       outcome
     end
@@ -191,6 +149,14 @@ module ServiceBroker
       return answer.result if answer.success?
 
       raise ValidationError, answer.errors
+    end
+
+    def run_steps(&)
+      run_before_steps
+      result = execute(&)
+      inside, = self.class.after_steps.partition(&:in_transaction)
+      run_after_steps(inside, result)
+      result
     end
 
     def outcome(result = nil)

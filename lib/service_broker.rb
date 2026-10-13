@@ -28,6 +28,8 @@ require_relative 'service_broker/events'
 require_relative 'service_broker/option_declarations'
 require_relative 'service_broker/queueing'
 require_relative 'service_broker/reporting'
+require_relative 'service_broker/composition'
+require_relative 'service_broker/running'
 require_relative 'service_broker/operation'
 require_relative 'service_broker/inline_async'
 
@@ -56,7 +58,7 @@ module ServiceBroker
     attr_writer :default_pass_through_errors
 
     def default_pass_through_errors
-      @default_pass_through_errors ||= []
+      @default_pass_through_errors ||= [StepDepthError]
     end
 
     def config
