@@ -61,6 +61,13 @@ class EventsTest < BrokerTest
     refute_includes payload.inspect, 'secret-value'
   end
 
+  def test_sb_12_04_refused_queueing_sends_no_event
+    runner.define_singleton_method(:enqueue) { |*, **| nil }
+
+    assert_nil Probe::Sum.call(left: 1, right: 2, async: true)
+    assert_empty names
+  end
+
   def test_sb_12_04_queueing_has_its_own_event
     Probe::Sum.call(left: 1, right: 2, async: true, queue: :media, delay: 60, priority: 5)
 

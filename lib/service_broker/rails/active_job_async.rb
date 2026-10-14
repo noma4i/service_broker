@@ -11,6 +11,7 @@ module ServiceBroker
       options = { queue: queue, priority: priority, wait: delay }.compact
       job = job_class_for(operation_class).set(**options)
                                           .perform_later(operation_class.name, payload)
+      return unless job
 
       job.job_id
     end

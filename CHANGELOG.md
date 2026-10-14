@@ -18,6 +18,14 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.2.1
+
+### Deferred calls
+
+- A refused enqueue (job not unique, enqueue limit, `before_enqueue` abort) makes
+  `call(async: true)` return `nil` and send no `service_broker.enqueue` event. It used to raise
+  `NoMethodError: undefined method 'job_id' for false`.
+
 ## 1.2.0
 
 ### Inputs

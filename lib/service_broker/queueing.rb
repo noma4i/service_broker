@@ -8,7 +8,7 @@ module ServiceBroker
       job_id = ServiceBroker.config.async_runner.enqueue(
         self, payload, queue: options[:queue], delay: options[:delay], priority: options[:priority]
       )
-      Events.queued(self, options, inputs, job_id)
+      Events.queued(self, options, inputs, job_id) if job_id
 
       job_id
     end

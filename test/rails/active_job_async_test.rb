@@ -12,6 +12,20 @@ class ActiveJobAsyncTest < RailsBrokerTest
     assert_instance_of ServiceBroker::ActiveJobAsync, ServiceBroker.config.async_runner
   end
 
+  def test_sb_07_03_a_refused_enqueue_returns_nil
+    parent = Class.new(ActiveJob::Base) { before_enqueue { throw :abort } }
+    stub_name(parent, 'ProbeRefusingJob')
+    Object.const_set(:ProbeRefusingJob, parent)
+    ServiceBroker.config.job_parent_name = 'ProbeRefusingJob'
+    forget_probe_jobs
+
+    assert_nil Probe::Sum.call(left: 1, right: 2, async: true)
+    assert_empty enqueued_jobs
+  ensure
+    forget_probe_jobs
+    Object.send(:remove_const, :ProbeRefusingJob)
+  end
+
   def test_sb_07_05_job_carries_the_operation_name
     Probe::Media::BuildThumbnail.call(width: 320, async: true)
 
@@ -173,6 +187,10 @@ class ActiveJobAsyncTest < RailsBrokerTest
   end
 
   private
+
+  def forget_probe_jobs
+    ServiceBroker::Jobs.send(:remove_const, :Probe) if ServiceBroker::Jobs.const_defined?(:Probe, false)
+  end
 
   def stub_name(klass, name)
     klass.define_singleton_method(:name) { name }
