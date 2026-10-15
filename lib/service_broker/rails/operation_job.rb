@@ -10,17 +10,22 @@ module ServiceBroker
         short_name = parts.last
         return container.const_get(short_name, false) if container.const_defined?(short_name, false)
 
-        job_class = Class.new(parent) { include OperationJobBody }
-        container.const_set(short_name, job_class)
-        job_class
+        container.const_set(short_name, new_job_class(parent))
       end
 
       # A worker that boots fresh asks for ServiceBroker::Jobs::<Operation> before
       # anything built it, so the name resolves here.
       def const_missing(name)
-        parent = ServiceBroker.config.job_parent_name.to_s.constantize
-        job_class = Class.new(parent) { include OperationJobBody }
-        const_set(name, job_class)
+        const_set(name, new_job_class(ServiceBroker.config.job_parent_name.to_s.constantize))
+      end
+
+      # The class answers a nested name too: a missing name cannot say whether it
+      # is an operation or a namespace of operations.
+      def new_job_class(parent)
+        Class.new(parent) do
+          include OperationJobBody
+          extend NestedJobs
+        end
       end
 
       private
@@ -36,9 +41,7 @@ module ServiceBroker
   # Nested namespaces of job classes answer a missing name the same way.
   module NestedJobs
     def const_missing(name)
-      parent = ServiceBroker.config.job_parent_name.to_s.constantize
-      job_class = Class.new(parent) { include OperationJobBody }
-      const_set(name, job_class)
+      const_set(name, Jobs.new_job_class(ServiceBroker.config.job_parent_name.to_s.constantize))
     end
   end
 

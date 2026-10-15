@@ -186,6 +186,18 @@ class ActiveJobAsyncTest < RailsBrokerTest
     assert_includes job_class.ancestors, ServiceBroker::OperationJobBody
   end
 
+  def test_sb_07_18_b_a_fresh_worker_resolves_a_nested_job_name_with_no_namespace_built
+    name = ServiceBroker.config.async_runner.job_name_for(Probe::Media::BuildThumbnail)
+    forget_probe_jobs
+
+    job_class = name.constantize
+
+    assert_equal name, job_class.name
+    assert_includes job_class.ancestors, ServiceBroker::OperationJobBody
+  ensure
+    forget_probe_jobs
+  end
+
   private
 
   def forget_probe_jobs

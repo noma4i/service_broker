@@ -18,6 +18,15 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.2.2
+
+### Deferred calls
+
+- A worker that boots fresh now resolves the job name of a namespaced operation
+  (`ServiceBroker::Jobs::Actions::CollectImpression`). The first missing segment became a plain
+  class that could not answer the next segment, so every such job failed with
+  `ActiveJob::UnknownJobClassError`. Only a process that had enqueued the operation itself ran it.
+
 ## 1.2.1
 
 ### Deferred calls
