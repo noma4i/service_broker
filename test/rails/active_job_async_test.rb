@@ -198,10 +198,66 @@ class ActiveJobAsyncTest < RailsBrokerTest
     forget_probe_jobs
   end
 
+  def test_sb_07_20_a_an_operation_asks_for_a_unique_job
+    parent = unique_recording_parent
+
+    Probe::UniqueSum.call(left: 1, right: 2, async: true)
+
+    assert_equal [[:until_executing, { lock_ttl: 600 }]], parent.unique_calls
+  end
+
+  def test_sb_07_20_b_an_operation_without_the_declaration_is_not_unique
+    parent = unique_recording_parent
+
+    Probe::Sum.call(left: 1, right: 2, async: true)
+
+    assert_empty parent.unique_calls
+  end
+
+  def test_sb_07_21_a_a_fresh_worker_gets_the_same_declaration
+    parent = unique_recording_parent
+    name = ServiceBroker.config.async_runner.job_name_for(Probe::UniqueSum)
+    parent.unique_calls.clear
+    ServiceBroker::Jobs.send(:remove_const, :Probe)
+
+    name.constantize
+
+    assert_equal [[:until_executing, { lock_ttl: 600 }]], parent.unique_calls
+  end
+
+  def test_sb_07_21_b_a_parent_job_without_unique_is_refused
+    Object.const_set(:ProbeNoUniqueJob, Class.new(ActiveJob::Base))
+    ServiceBroker.config.job_parent_name = 'ProbeNoUniqueJob'
+    forget_probe_jobs
+    ServiceBroker::Jobs.send(:remove_const, :Probe) if ServiceBroker::Jobs.const_defined?(:Probe, false)
+
+    assert_raises(ServiceBroker::ConfigurationError) { Probe::UniqueSum.call(left: 1, right: 2, async: true) }
+  ensure
+    forget_probe_jobs
+    Object.send(:remove_const, :ProbeNoUniqueJob)
+  end
+
   private
 
   def forget_probe_jobs
     ServiceBroker::Jobs.send(:remove_const, :Probe) if ServiceBroker::Jobs.const_defined?(:Probe, false)
+    Object.send(:remove_const, :ProbeUniqueParentJob) if Object.const_defined?(:ProbeUniqueParentJob)
+  end
+
+  def unique_recording_parent
+    parent = Class.new(ActiveJob::Base) do
+      class_attribute :unique_calls, default: []
+
+      def self.unique(strategy, **options)
+        unique_calls << [strategy, options]
+      end
+    end
+    parent.unique_calls = []
+    Object.send(:remove_const, :ProbeUniqueParentJob) if Object.const_defined?(:ProbeUniqueParentJob)
+    Object.const_set(:ProbeUniqueParentJob, parent)
+    ServiceBroker.config.job_parent_name = 'ProbeUniqueParentJob'
+    ServiceBroker::Jobs.send(:remove_const, :Probe) if ServiceBroker::Jobs.const_defined?(:Probe, false)
+    parent
   end
 
   def stub_name(klass, name)

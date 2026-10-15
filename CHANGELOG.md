@@ -18,6 +18,15 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.3.0
+
+### Deferred calls
+
+- `unique(strategy = :until_executing, ttl: nil)` marks an operation as unique while its job waits
+  in the queue. An operation is never unique unless it says so. The job class takes the strategy
+  from the base job (`unique(strategy, lock_ttl: ttl)`), in the process that enqueues and in a
+  fresh worker that loads the job name. A base job without `unique` raises `ConfigurationError`.
+
 ## 1.2.2
 
 ### Deferred calls

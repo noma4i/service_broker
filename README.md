@@ -152,6 +152,15 @@ end
 Options belong to one call: two threads calling the same operation with different options never
 see each other's values, and a nested call reads its own defaults.
 
+Uniqueness is opt-in. An operation is never unique unless it declares it, and the job library
+(for example `activejob-uniqueness`) supplies the strategy:
+
+```ruby
+class Media::Analyze < ServiceBroker::Operation
+  unique :until_executing, ttl: 10.minutes
+end
+```
+
 Answers:
 
 ```ruby

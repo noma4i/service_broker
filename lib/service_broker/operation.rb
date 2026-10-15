@@ -19,6 +19,7 @@ module ServiceBroker
         subclass.instance_variable_set(:@input_set, input_set.dup)
         subclass.instance_variable_set(:@execution_defaults, execution_defaults.dup)
         subclass.instance_variable_set(:@abstract_methods, abstract_methods.dup)
+        subclass.instance_variable_set(:@unique_options, unique_options&.dup)
         subclass.input_set.owner = subclass
       end
 
