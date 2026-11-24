@@ -164,6 +164,28 @@ class ActiveJobAsyncTest < RailsBrokerTest
     assert_in_delta 30, enqueued_jobs.last[:at] - Time.now.to_f, 5
   end
 
+  def test_sb_07_22_an_error_the_job_retries_is_not_reported
+    reported = []
+    ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
+    Probe::Throttling.call(async: true)
+    job = enqueued_jobs.last
+    enqueued_jobs.clear
+    job[:job].perform_now(*job[:args])
+
+    assert_equal [1, []], [enqueued_jobs.size, reported]
+  end
+
+  def test_sb_07_22_the_last_attempt_reports_once
+    reported = []
+    ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
+    ServiceBroker.config.retry_on = { 'Probe::Flaky' => { attempts: 2, wait: 5 } }
+    job = ServiceBroker.config.async_runner.job_class_for(Probe::Flaking).new('Probe::Flaking', {})
+    job.executions = 2
+
+    assert_raises(Probe::Flaky) { job.perform_now }
+    assert_equal [Probe::Flaky], reported.map(&:class)
+  end
+
   def test_sb_07_18_a_fresh_process_resolves_the_job_name
     name = ServiceBroker.config.async_runner.job_name_for(Probe::Sum)
     container = ServiceBroker::Jobs

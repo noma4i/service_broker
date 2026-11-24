@@ -18,6 +18,12 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.3.1
+
+### Errors and reporting
+
+- An error raised inside a queued job that the job runs again (`retry_after` or a `retry_on` rule with attempts left) no longer reaches `error_reporter`. The last attempt reports it once. The job and the report read one decision: `ServiceBroker::RetryPlan`.
+
 ## 1.3.0
 
 ### Deferred calls

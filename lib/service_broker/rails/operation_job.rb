@@ -78,16 +78,12 @@ module ServiceBroker
       cleaned = ServiceBroker.symbolize(inputs)
       self.arguments = [operation_name, cleaned.transform_keys(&:to_s)]
 
-      operation_name.constantize.run_sync(**cleaned)
+      RetryPlan.attempt(executions) { operation_name.constantize.run_sync(**cleaned) }
     rescue ServiceBroker::ValidationError
       nil
     rescue StandardError => e
-      rule = ServiceBroker.config.retry_on[e.class.name]
-      wait = e.respond_to?(:retry_after) ? e.retry_after : rule&.fetch(:wait, nil)
+      wait = RetryPlan.wait_for(e, executions)
       raise e if wait.nil?
-
-      limit = rule&.fetch(:attempts, nil) || ServiceBroker.config.max_retries
-      raise e if executions >= limit
 
       retry_job(wait: wait)
       nil

@@ -33,6 +33,8 @@ module ServiceBroker
     end
 
     def report(error, inputs, operation = nil)
+      return if RetryPlan.follows?(error)
+
       config = ServiceBroker.config
       allowed = config.error_dedup.call(context: name, error_class: error.class.name)
       unless allowed
