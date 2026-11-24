@@ -43,6 +43,18 @@ class GlobalIdQueueTest < RailsBrokerTest
     assert_equal [[], []], [enqueued_jobs, reported]
   end
 
+  def test_sb_08_21_a_not_found_the_operation_adds_itself_is_reported
+    reported = []
+    ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
+    account = Probe::Account.create!(title: 'a')
+    Probe::LoseAccount.call(account: account.id, async: true)
+    job = enqueued_jobs.last
+    enqueued_jobs.clear
+    perform(job)
+
+    assert_equal [[], [ServiceBroker::ValidationError]], [enqueued_jobs, reported.map(&:class)]
+  end
+
   def test_sb_07_19_an_argument_of_a_deleted_record_ends_the_job_quietly
     reported = []
     ServiceBroker.config.error_reporter = ->(error, **) { reported << error }

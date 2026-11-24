@@ -104,8 +104,10 @@ module ServiceBroker
       def report_failed_after(step, outcome)
         return if outcome.success?
 
-        error = outcome.exception || ValidationError.new(outcome.errors)
-        step.operation_class.send(:report, error, outcome.raw_inputs)
+        unless outcome.exception
+          step.operation_class.send(:report, ValidationError.new(outcome.errors),
+                                    outcome.raw_inputs)
+        end
         name = step.operation_class.name
         ServiceBroker.config.logger.call("[#{self.class.name}] after step #{name} failed")
       end

@@ -186,15 +186,23 @@ class ActiveJobAsyncTest < RailsBrokerTest
     assert_equal [Probe::Flaky], reported.map(&:class)
   end
 
-  def test_sb_07_22_a_retryable_error_swallowed_by_a_soft_call_is_reported
-    reported = []
-    ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
-    Probe::SoftThrottling.call(async: true)
-    job = enqueued_jobs.last
-    enqueued_jobs.clear
-    job[:job].perform_now(*job[:args])
+  def test_sb_07_22_a_retryable_error_a_caller_swallows_is_reported_without_retry
+    outcomes = [Probe::SoftThrottling, Probe::CaughtThrottling].to_h do |operation|
+      reported = []
+      ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
+      enqueued_jobs.clear
+      operation.call(async: true)
+      job = enqueued_jobs.last
+      enqueued_jobs.clear
+      job[:job].perform_now(*job[:args])
 
-    assert_equal [0, [Probe::Throttled]], [enqueued_jobs.size, reported.map(&:class)]
+      [operation.name, [enqueued_jobs.size, reported.map(&:class)]]
+    end
+
+    assert_equal(
+      { 'Probe::SoftThrottling' => [0, [Probe::Throttled]],
+        'Probe::CaughtThrottling' => [0, [Probe::Throttled]] }, outcomes
+    )
   end
 
   def test_sb_07_18_a_fresh_process_resolves_the_job_name

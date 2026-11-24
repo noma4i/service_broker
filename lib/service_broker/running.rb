@@ -46,11 +46,14 @@ module ServiceBroker
       fail_call(e, inputs, options, operation)
     end
 
-    # A soft call swallows the error: the job does not see it, so the report stays.
     def fail_call(error, inputs, options, operation)
-      report(error, inputs, operation) unless !options[:soft] && RetryPlan.quiet?(error)
-      raise error unless options[:soft]
+      sending = -> { report(error, inputs, operation) }
+      unless options[:soft]
+        RetryPlan.hold(error, operation, sending)
+        raise error
+      end
 
+      sending.call
       failed_outcome(error, inputs)
     end
 

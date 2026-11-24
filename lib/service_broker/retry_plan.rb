@@ -1,6 +1,5 @@
 module ServiceBroker
-  # One decision for a queued job and its error report: when the job runs again, and which error of
-  # an attempt stays out of the report (the job repeats it, or the record of the job is gone).
+  # One decision for a queued job: when it runs again, and which error reports of an attempt go out.
   module RetryPlan
     ATTEMPT_KEY = :service_broker_job_attempt
 
@@ -17,25 +16,36 @@ module ServiceBroker
 
     def self.attempt(executions)
       previous = Thread.current[ATTEMPT_KEY]
-      Thread.current[ATTEMPT_KEY] = executions
-      yield
+      held = Thread.current[ATTEMPT_KEY] = []
+      begin
+        answer = yield
+      rescue StandardError => e
+        job_operation = held.reverse.find { |error, _operation, _sending| error.equal?(e) }&.at(1)
+        send_held(held, quiet?(e, job_operation, executions) ? e : nil)
+        raise
+      end
+      send_held(held)
+      answer
     ensure
       Thread.current[ATTEMPT_KEY] = previous
     end
 
-    def self.quiet?(error)
-      executions = Thread.current[ATTEMPT_KEY]
-      return false if executions.nil?
+    def self.hold(error, operation, sending)
+      held = Thread.current[ATTEMPT_KEY]
+      return sending.call if held.nil?
 
-      !wait_for(error, executions).nil? || record_gone?(error)
+      held << [error, operation, sending]
     end
 
-    def self.record_gone?(error)
-      return false unless error.is_a?(ValidationError) && error.errors.is_a?(Errors)
-
-      codes = error.errors.symbolic.values
-
-      codes.any? && codes.all?(:not_found)
+    def self.send_held(held, skipped = nil)
+      held.each { |error, _operation, sending| sending.call unless error.equal?(skipped) }
     end
+
+    def self.quiet?(error, operation, executions)
+      return true unless wait_for(error, executions).nil?
+
+      error.is_a?(ValidationError) && operation.respond_to?(:missing_record?) && operation.missing_record?
+    end
+    private_class_method :send_held, :quiet?
   end
 end

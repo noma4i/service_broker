@@ -168,6 +168,16 @@ class CompositionTest < BrokerTest
     assert_equal 1, @reports.size
   end
 
+  def test_sb_14_10_an_after_step_that_raises_reports_once
+    operation = declare do
+      after Probe::Boom, name: 'late'
+      def execute = :done
+    end
+
+    assert_equal :done, operation.call
+    assert_equal [ArgumentError], @reports.map(&:class)
+  end
+
   def test_sb_14_11_async_after_goes_to_the_queue
     operation = declare do
       after Probe::Sum, async: true, left: 2, right: ->(result) { result }

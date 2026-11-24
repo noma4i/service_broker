@@ -18,6 +18,14 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.3.3
+
+### Errors and reporting
+
+- Fix of 1.3.2: inside a queued job the report of an error waits for the end of the attempt. An error the calling code catches is reported once the job ends, an error that leaves the job and makes it run again stays out of the report.
+- Fix of 1.3.2: only a record that the input check of the job's own operation did not find ends the job quietly. A `not_found` that `validate` or `execute` adds is reported.
+- An `after` step that raises is reported once, not twice.
+
 ## 1.3.2
 
 ### Errors and reporting

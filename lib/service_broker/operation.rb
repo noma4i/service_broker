@@ -132,6 +132,7 @@ module ServiceBroker
       checked, errors = self.class.input_set.check(arguments)
       @inputs = ServiceBroker.indifferent(checked)
       @errors = errors
+      @missing_record = only_not_found?(errors)
 
       validate unless has_errors?
     end
@@ -178,11 +179,21 @@ module ServiceBroker
       !@errors.nil?
     end
 
+    def missing_record?
+      @missing_record
+    end
+
     private
 
     attr_reader :inputs, :raw_inputs, :errors
 
     def validate; end
+
+    def only_not_found?(errors)
+      codes = errors.is_a?(Errors) ? errors.symbolic.values : []
+
+      codes.any? && codes.all?(:not_found)
+    end
 
     def execute; end
 
