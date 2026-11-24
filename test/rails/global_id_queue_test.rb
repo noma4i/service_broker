@@ -30,7 +30,7 @@ class GlobalIdQueueTest < RailsBrokerTest
     end
   end
 
-  def test_sb_08_21_a_deleted_record_does_not_retry_the_job
+  def test_sb_08_21_a_deleted_record_ends_the_job_without_retry_or_report
     reported = []
     ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
     account = Probe::Account.create!(title: 'a')
@@ -40,12 +40,10 @@ class GlobalIdQueueTest < RailsBrokerTest
     account.destroy!
     perform(job)
 
-    assert_empty enqueued_jobs
-    assert_equal 1, reported.size
-    assert_instance_of ServiceBroker::ValidationError, reported.first
+    assert_equal [[], []], [enqueued_jobs, reported]
   end
 
-  def test_sb_07_19_an_unreadable_argument_is_reported_once
+  def test_sb_07_19_an_argument_of_a_deleted_record_ends_the_job_quietly
     reported = []
     ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
     account = Probe::Account.create!(title: 'a')
@@ -56,9 +54,7 @@ class GlobalIdQueueTest < RailsBrokerTest
 
     ActiveJob::Base.execute(job_data(job))
 
-    assert_empty enqueued_jobs
-    assert_equal 1, reported.size
-    assert_instance_of ActiveJob::DeserializationError, reported.first
+    assert_equal [[], []], [enqueued_jobs, reported]
   end
 
   private

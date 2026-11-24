@@ -69,6 +69,8 @@ module ServiceBroker
   module OperationJobBody
     def self.included(base)
       base.rescue_from(::ActiveJob::DeserializationError) do |error|
+        next if error.cause.is_a?(::ActiveRecord::RecordNotFound)
+
         ServiceBroker.config.error_reporter.call(error, operation: arguments.first.to_s)
         nil
       end

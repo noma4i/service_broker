@@ -186,10 +186,21 @@ class ActiveJobAsyncTest < RailsBrokerTest
     assert_equal [Probe::Flaky], reported.map(&:class)
   end
 
+  def test_sb_07_22_a_retryable_error_swallowed_by_a_soft_call_is_reported
+    reported = []
+    ServiceBroker.config.error_reporter = ->(error, **) { reported << error }
+    Probe::SoftThrottling.call(async: true)
+    job = enqueued_jobs.last
+    enqueued_jobs.clear
+    job[:job].perform_now(*job[:args])
+
+    assert_equal [0, [Probe::Throttled]], [enqueued_jobs.size, reported.map(&:class)]
+  end
+
   def test_sb_07_18_a_fresh_process_resolves_the_job_name
     name = ServiceBroker.config.async_runner.job_name_for(Probe::Sum)
-    container = ServiceBroker::Jobs
-    container.send(:remove_const, :Sum) if container.const_defined?(:Sum, false)
+    container = name.deconstantize.constantize
+    container.send(:remove_const, name.demodulize) if container.const_defined?(name.demodulize, false)
 
     job_class = name.constantize
 

@@ -42,11 +42,16 @@ module ServiceBroker
       raise if ServiceBroker.config.pass_through_errors.any? { |klass| e.is_a?(klass) }
 
       logger.finish(e)
-      report(e, inputs, operation)
       state[:failed] = true
-      raise e unless options[:soft]
+      fail_call(e, inputs, options, operation)
+    end
 
-      failed_outcome(e, inputs)
+    # A soft call swallows the error: the job does not see it, so the report stays.
+    def fail_call(error, inputs, options, operation)
+      report(error, inputs, operation) unless !options[:soft] && RetryPlan.quiet?(error)
+      raise error unless options[:soft]
+
+      failed_outcome(error, inputs)
     end
 
     def check_abstract_methods!

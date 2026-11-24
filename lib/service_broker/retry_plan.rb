@@ -1,10 +1,9 @@
 module ServiceBroker
-  # Decides whether a queued job runs again after an error, and when. The job and the error report
-  # read the same answer: an error the job repeats is not reported until the last attempt.
+  # One decision for a queued job and its error report: when the job runs again, and which error of
+  # an attempt stays out of the report (the job repeats it, or the record of the job is gone).
   module RetryPlan
     ATTEMPT_KEY = :service_broker_job_attempt
 
-    # Seconds until the next run, or nil when the job stops here.
     def self.wait_for(error, executions)
       rule = ServiceBroker.config.retry_on[error.class.name]
       wait = error.respond_to?(:retry_after) ? error.retry_after : rule&.fetch(:wait, nil)
@@ -16,7 +15,6 @@ module ServiceBroker
       wait
     end
 
-    # Runs the block as attempt number `executions` of a queued job.
     def self.attempt(executions)
       previous = Thread.current[ATTEMPT_KEY]
       Thread.current[ATTEMPT_KEY] = executions
@@ -25,11 +23,19 @@ module ServiceBroker
       Thread.current[ATTEMPT_KEY] = previous
     end
 
-    # True inside a queued job that will run again after this error.
-    def self.follows?(error)
+    def self.quiet?(error)
       executions = Thread.current[ATTEMPT_KEY]
+      return false if executions.nil?
 
-      !executions.nil? && !wait_for(error, executions).nil?
+      !wait_for(error, executions).nil? || record_gone?(error)
+    end
+
+    def self.record_gone?(error)
+      return false unless error.is_a?(ValidationError) && error.errors.is_a?(Errors)
+
+      codes = error.errors.symbolic.values
+
+      codes.any? && codes.all?(:not_found)
     end
   end
 end

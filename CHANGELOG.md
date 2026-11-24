@@ -18,6 +18,13 @@ Versions follow semantic versioning. Dates are omitted on purpose: the tags carr
 
 ### Around the gem
 
+## 1.3.2
+
+### Errors and reporting
+
+- Fix of 1.3.1: an error that a `soft: true` call, an `after` step or a `step` swallows inside a queued job is reported again. Only an error that leaves the operation of the job and makes the job run again stays out of the report.
+- A queued job whose record is gone (a `finder` input answers `not_found`, or the queue cannot read the argument of a deleted record) ends without a retry and without a report.
+
 ## 1.3.1
 
 ### Errors and reporting
